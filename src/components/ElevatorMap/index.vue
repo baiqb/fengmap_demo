@@ -10,15 +10,28 @@ const curCoords = reactive({
   x: 0,
   y: 0,
   z: 0,
-  m_id: 0,
-  m_name: '消防',
-  m_desc: '消防描述'
+  m_type: 'paishui',
+  m_name: '智慧给排水',
 })
 // mapId
 const mapId = 'project-fengmap__elevator'
 // 地图实例
 let mapInstance = null
 let lastHideBuilding = null
+
+const curIconType = ref('paishui')
+const iconList = reactive([
+  { type: 'paishui', label: '智慧给排水' },
+  { type: 'xiaofang', label: '智慧消防' },
+  { type: 'shuixiang', label: '消防水箱' },
+  { type: 'shipin', label: '智慧视频' },
+  { type: 'renxing', label: '智慧人行' },
+  { type: 'chexing', label: '智慧车行' },
+  { type: 'dianti', label: '智慧电梯' },
+])
+
+let pointerMarker = null
+
 // 楼栋地图映射
 const buildingMap = {
   '22070101042': { themeId: '1545308642963337218', mapId: '1545250644203249666' }, // 一号楼
@@ -29,29 +42,29 @@ const buildingMap = {
   '22070101047': { themeId: '1545308642963337218', mapId: '1545249914310250498' }, // 七号楼
   '22070101048': { themeId: '1545308642963337218', mapId: '1535906487919812609' }, // 八号楼
 }
-const processHover = _.throttle(function(event){
-  // console.log('mapInstance hover', event)
-}, 500)
-const addMarker = (map, x, y, z=1) => {
+
+const addMarker = (map, x, y, z, iconType) => {
+  iconType = iconType || curIconType.value
   const marker = new fengmap.FMImageMarker({
-    url: 'images/icon-xiaofang.png?id=' + parseInt(Math.random() * 100),
+    url: `images/icon-${iconType}.png`,
     x,
     y,
-    height: parseFloat(z).toFixed(2)
+    height: z
   })
-  const { m_name, m_id } = curCoords
+  const { m_name, m_type } = curCoords
   marker.m_name = m_name
   marker.m_desc = m_name
-  marker.m_id = m_id + '_' + parseInt(Math.random() * 100)
+  marker.m_type = m_type
   const floor = map.getFloor(map.getLevel())
   marker.addTo(floor)
-  markerList.push(marker)
-  console.log(markerList)
+  return marker
 }
 const handleAddMarker = () => {
   const { x, y, z} = curCoords
-  addMarker(mapInstance, x, y, (z - 50).toFixed(2))
+  const marker = addMarker(mapInstance, x, y, z)
+  markerList.push(marker)
 }
+
 const handleRemoveMarker = (marker, index) => {
   marker.remove()
   markerList.splice(index,1)
@@ -62,85 +75,69 @@ const initFengMap = () => {
     return true
   }
   mapInstance = initOffLineElevatorMap(mapId)
-  mapInstance.on('hover', function(event) {
-    processHover(event)
-  })
   // 监听点击事件
   mapInstance.on('click', function (event) {
-    const { targets, coords } = event
+    const { coords } = event
     let { x, y, z } = coords
     x = +parseFloat(x).toFixed(2)
     y = +parseFloat(y).toFixed(2)
-    z = +parseFloat(z).toFixed(2)
+    z = +parseFloat(z - 50).toFixed(2)
     curCoords.x = x
     curCoords.y = y
     curCoords.z = z
-
-    // addMarker(mapInstance, x, y, z - 50)
-    // 判断是否点击的楼栋
-    // let buildingNumber = null
-    // const reg = /\d号楼/
-    let curBuildingFID = null
-    if (lastHideBuilding) {
-      lastHideBuilding.visible = true
-    }
-    console.log(event)
-    if (targets instanceof Array) {
-      for (let i = 0; i < targets.length; i++) {
-        const ele = targets[i]
-        if (ele.type == FMType.EXTERNAL_MODEL) {
-          const modelData = ele.getData()
-          // console.log('modelData :', ele.type, modelData.ID, modelData, modelData)
-          // console.log({
-          //   '模型type': ele.type,
-          //   '模型ID': modelData.ID,
-          //   '模型FID': modelData.FID,
-          //   '模型typeID': modelData.typeID
-          // })
-          const FID = modelData.FID
-          if (FID && buildingMap[FID]) {
-            curBuildingFID = FID
-            if (ele.visible) {
-              lastHideBuilding = ele
-              // ele.visible = false
-            }
-            break
-          }
-        }
-      }
-    }
+    handleAddMarker()
+    // if (pointerMarker && pointerMarker.remove) {
+    //   pointerMarker.remove()
+    // }
+    // pointerMarker = addMarker(mapInstance, x, y, z)
   })
 }
 onMounted(initFengMap)
 onBeforeUnmount(() => {
   if (mapInstance && mapInstance.dispose) {
-    // mapInstance.dispose()
-    // mapInstance = null
+    mapInstance.dispose()
+    mapInstance = null
   }
 })
+const handleIconTypeChange = (icon) => {
+  curCoords.m_name = icon.label
+  curCoords.m_type = icon.type
+  curIconType.value = icon.type
+}
 </script>
 <template>
   <div id="project-fengmap__elevator" class="map-container"></div>
   <div class="marker-info">
-    <div>
-      当前点击的位置信息：{{curCoords}}
+    <div class="radio-group">
+      <div class="radio-item" v-for="(icon, index) in iconList" :key="index">
+        <input type="radio" :id="icon.type" @click="handleIconTypeChange(icon)" :value="icon.type" :name="icon.type" :checked="curIconType == icon.type">
+        <div class="radio-label" @click="handleIconTypeChange(icon)">
+          {{icon.label}}
+        </div>
+        <div class="radio-img" @click="handleIconTypeChange(icon)">
+          <img :src="`images/icon-${icon.type}.png`">
+        </div>
+      </div>
     </div>
-    <div class="flex">
+    <!-- <div class="flex">
       <div class="label">点位ID:</div>
-      <input type="text" v-model="curCoords.m_id">
+      <input type="text" v-model="curCoords.m_type">
       <div class="label">点位名称:</div>
       <input type="text" v-model="curCoords.m_name">
       <div class="add-btn" @click="handleAddMarker(curCoords)">添加标记</div>
-    </div>
+    </div> -->
     <table>
       <tr>
-        <th>ID</th>
+        <th>type</th>
+        <th>类型</th>
+        <th>x</th>
         <th>x</th>
         <th>y</th>
         <th>z(高度)</th>
       </tr>
       <tr v-for="(item, index) in markerList" :key="index">
-        <td>{{item.m_id}}</td>
+        <td>{{item.m_type}}</td>
+        <td>{{item.m_name}}</td>
         <td>{{item.x}}</td>
         <td>{{item.y}}</td>
         <td>{{item.height}}</td>
@@ -151,6 +148,24 @@ onBeforeUnmount(() => {
 </template>
 <style lang="css" scoped>
 @import "../style/map.css";
+.radio-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.radio-group img {
+  width: 32px;
+  height: 32px;
+}
+.radio-item {
+  display: flex;
+  align-items: center;
+  width: 140px;
+  padding: 5px 0;
+}
+.radio-item .radio-label{
+  line-height: 32px;
+}
 .marker-info {
   font-size: 14px;
   padding: 10px;
