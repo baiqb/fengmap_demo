@@ -31,8 +31,8 @@ export const initOffLineElevatorMap = (elementId, mapID = '10347', themeID = '20
     tile: false,			            //是否分层加载,默认值:true
     mapID: mapID,
     themeID: themeID,
-    mapURL: 'fengmap/elevator/',
-    themeURL: 'fengmap/elevator/theme/',
+    mapURL: 'fengmap/data/',
+    themeURL: 'fengmap/data/theme/',
     highlightColor: '#999',
     highlightPicker: ['click', 'hover'],
     tiltAngle: defaultTiltAngle,	                //地图默认的倾斜角度
@@ -71,8 +71,8 @@ export const initOffLineMap = (elementId, mapID = '10347', themeID = '2001', {
     // themeURL: 'fengmap/data/theme/',
     highlightColor: 'rgba(127,127,127,0.3)',
     highlightPicker: ['hover', 'click'],
-    mapURL: 'fengmap/elevator/',
-    themeURL: 'fengmap/elevator/theme/',
+    mapURL: 'fengmap/data/',
+    themeURL: 'fengmap/data/theme/',
     tiltAngle: defaultTiltAngle,	                //地图默认的倾斜角度
     maxTiltAngle: maxTiltAngle,		        //地图默认最大倾斜角度
     minTiltAngle: minTiltAngle,		        //地图默认最小倾斜角度
